@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Live altcoin screener — filter by 24h change, market cap, signals and more">
+<title>AltScreen — Live Altcoin Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0A0F;
+    --bg2: #111118;
+    --bg3: #18181F;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #F0EFE8;
+    --text2: #9A9994;
+    --text3: #5A5955;
+    --purple: #A78BFA;
+    --purple-dim: rgba(167,139,250,0.12);
+    --green: #4ADE80;
+    --green-dim: rgba(74,222,128,0.1);
+    --red: #F87171;
+    --red-dim: rgba(248,113,113,0.1);
+    --amber: #FCD34D;
+    --amber-dim: rgba(252,211,77,0.1);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+  .logo span { color: var(--purple); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .live-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .last-upd {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* METRICS */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .metric {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+  .metric-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+  }
+  .metric-value.up { color: var(--green); }
+  .metric-value.down { color: var(--red); }
+  .metric-value.purple { color: var(--purple); }
+
+  /* FILTERS */
+  .filters-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .filters-title {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 12px;
+  }
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .filter-group label {
+    font-size: 11px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+  select {
+    height: 38px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 0 10px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A5955' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+  select:focus { outline: none; border-color: var(--purple); }
+
+  .scan-btn {
+    height: 38px;
+    background: var(--purple);
+    color: #0A0A0F;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.3px;
+    transition: opacity 0.15s;
+  }
+  .scan-btn:hover { opacity: 0.88; }
+  .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* STATUS */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--text3);
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+  thead tr {
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text3);
+    font-family: 'Space Mono', monospace;
+    font-weight: 400;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text2); }
+  th.sorted { color: var(--purple); }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg3); }
+
+  .coin-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 130px;
+  }
+  .coin-img {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+  .coin-name { font-weight: 500; font-size: 13px; }
+  .coin-sym {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+  .neutral { color: var(--text3); }
+
+  .mono { font-family: 'Space Mono', monospace; font-size: 12px; }
+
+  .signal-tag {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.2px;
+    display: inline-block;
+  }
+  .bull { background: var(--green-dim); color: var(--green); }
+  .bear { background: var(--red-dim); color: var(--red); }
+  .athnear { background: var(--purple-dim); color: var(--purple); }
+  .neu { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+  .vol-bar-bg {
+    width: 50px; height: 3px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .vol-bar-fill { height: 100%; border-radius: 2px; }
+
+  .rank-badge {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: 'Space Mono', monospace;
+    min-width: 28px;
+    display: inline-block;
+  }
+
+  /* EMPTY / LOADING */
+  .state-box {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text3);
+  }
+  .state-box .icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .state-box p { font-size: 13px; color: var(--text3); }
+
+  /* FOOTER BUTTONS */
+  .footer-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .footer-btn {
+    height: 40px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .footer-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+  /* AFFILIATE */
+  .affiliate {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .aff-text { font-size: 13px; color: var(--text2); }
+  .aff-text strong { color: var(--text); font-weight: 500; }
+  .aff-cta {
+    height: 36px;
+    padding: 0 18px;
+    background: transparent;
+    border: 1px solid var(--purple);
+    color: var(--purple);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .aff-cta:hover { background: var(--purple-dim); }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .header { gap: 8px; }
+    .logo { font-size: 18px; }
+    .footer-btns { grid-template-columns: 1fr; }
+    .filters-grid { grid-template-columns: 1fr 1fr; }
+    .container { padding: 1rem 0.75rem 2rem; }
+  }
+  @media (max-width: 380px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .filters-grid { grid-template-columns: 1fr; }
+    .metric-value { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo">Alt<span>Screen</span></div>
+    <div class="header-right">
+      <div class="live-pill">
+        <span class="live-dot"></span>
+        Live — CoinGecko
+      </div>
+      <span class="last-upd" id="last-upd">—</span>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Coins shown</div>
+      <div class="metric-value purple" id="m-count">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Avg 24h</div>
+      <div class="metric-value" id="m-avg">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Top gainer</div>
+      <div class="metric-value up" id="m-top" style="font-size:13px">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Top loser</div>
+      <div class="metric-value down" id="m-bot" style="font-size:13px">—</div>
+    </div>
+  </div>
+
+  <div class="filters-card">
+    <div class="filters-title">Filters</div>
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>24h change</label>
+        <select id="f-change">
+          <option value="all">All</option>
+          <option value="up5">+5% or more</option>
+          <option value="up10">+10% or more</option>
+          <option value="up20">+20% or more</option>
+          <option value="down5">-5% or worse</option>
+          <option value="down10">-10% or worse</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Market cap</label>
+        <select id="f-mcap">
+          <option value="all">All tiers</option>
+          <option value="large">Large (&gt;$10B)</option>
+          <option value="mid">Mid ($1B–$10B)</option>
+          <option value="small">Small (&lt;$1B)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Signal</label>
+        <select id="f-signal">
+          <option value="all">All signals</option>
+          <option value="bull">Bullish</option>
+          <option value="bear">Bearish</option>
+          <option value="athnear">Near ATH</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sort by</label>
+        <select id="f-sort">
+          <option value="change_desc">Biggest gainers</option>
+          <option value="change_asc">Biggest losers</option>
+          <option value="mcap_desc">Market cap</option>
+          <option value="vol_desc">Volume spike</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <button class="scan-btn" id="scan-btn" onclick="scanCoins()">SCAN MARKET</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span id="status-text">Click "Scan Market" to load live data</span>
+    <span id="coin-count-label"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col style="width:32px">
+        <col style="width:160px">
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+        <col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Coin</th>
+          <th>Price</th>
+          <th>24h %</th>
+          <th>7d %</th>
+          <th>Market cap</th>
+          <th>Volume 24h</th>
+          <th>Signal</th>
+        </tr>
+      </thead>
+      <tbody id="coin-table">
+        <tr>
+          <td colspan="8">
+            <div class="state-box">
+              <span class="icon">📡</span>
+              <p>Click "Scan Market" to load live altcoin data</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-btns">
+    <button class="footer-btn" onclick="exportCSV()">⬇ Export to CSV</button>
+    <button class="footer-btn" onclick="window.open('https://coindcx.com','_blank')">Trade on CoinDCX →</button>
+  </div>
+
+  <div class="affiliate">
+    <div class="aff-text">
+      <strong>Start trading altcoins</strong> — Open a free CoinDCX account and get up to ₹100 welcome bonus
+    </div>
+    <button class="aff-cta" onclick="window.open('https://coindcx.com','_blank')">OPEN ACCOUNT →</button>
+  </div>
+
+</div>
+
+<script>
+  let allData = [];
+
+  function fmtPrice(n) {
+    if (n >= 1000) return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    if (n >= 1) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (n >= 0.01) return '$' + n.toFixed(4);
+    return '$' + n.toFixed(6);
+  }
+
+  function fmtBig(n) {
+    if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+    return '$' + Math.round(n).toLocaleString();
+  }
+
+  function getSignal(coin) {
+    const chg = coin.price_change_percentage_24h || 0;
+    const chg7 = coin.price_change_percentage_7d_in_currency || 0;
+    const fromAth = coin.ath ? ((coin.current_price - coin.ath) / coin.ath) * 100 : -100;
+    if (fromAth > -5) return { label: 'NEAR ATH', cls: 'athnear' };
+    if (chg > 5 && chg7 > 8) return { label: 'BULLISH', cls: 'bull' };
+    if (chg < -5 && chg7 < -8) return { label: 'BEARISH', cls: 'bear' };
+    return { label: 'NEUTRAL', cls: 'neu' };
+  }
+
+  async function scanCoins() {
+    const btn = document.getElementById('scan-btn');
+    btn.disabled = true;
+    btn.textContent = 'LOADING...';
+    document.getElementById('coin-table').innerHTML = `<tr><td colspan="8"><div class="state-box"><span class="icon">⏳</span><p>Fetching live market data from CoinGecko...</p></div></td></tr>`;
+    document.getElementById('status-text').textContent = 'Fetching top 100 coins...';
+
+    try {
+      const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=7d');
+      if (!r.ok) throw new Error('API error ' + r.status);
+      const raw = await r.json();
+      // Remove stablecoins
+      allData = raw.filter(c => !['tether','usd-coin','binance-usd','dai','true-usd','frax','usdd','first-digital-usd'].includes(c.id));
+      renderTable();
+      const now = new Date();
+      document.getElementById('last-upd').textContent = 'Updated ' + now.toLocaleTimeString();
+    } catch (e) {
+      document.getElementById('coin-table').innerHTML = `<tr><td colspan="8"><div class="state-box"><span class="icon">⚠️</span><p>Failed to load data. CoinGecko rate limit — please wait 60s and try again.</p></div></td></tr>`;
+      document.getElementById('status-text').textContent = 'Error — try again in 60 seconds';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'SCAN MARKET';
+  }
+
+  function renderTable() {
+    const changeF = document.getElementById('f-change').value;
+    const mcapF = document.getElementById('f-mcap').value;
+    const signalF = document.getElementById('f-signal').value;
+    const sortF = document.getElementById('f-sort').value;
+
+    let coins = [...allData];
+
+    // Apply filters
+    if (changeF === 'up5') coins = coins.filter(c => (c.price_change_percentage_24h || 0) >= 5);
+    else if (changeF === 'up10') coins = coins.filter(c => (c.price_change_percentage_24h || 0) >= 10);
+    else if (changeF === 'up20') coins = coins.filter(c => (c.price_change_percentage_24h || 0) >= 20);
+    else if (changeF === 'down5') coins = coins.filter(c => (c.price_change_percentage_24h || 0) <= -5);
+    else if (changeF === 'down10') coins = coins.filter(c => (c.price_change_percentage_24h || 0) <= -10);
+
+    if (mcapF === 'large') coins = coins.filter(c => (c.market_cap || 0) > 10e9);
+    else if (mcapF === 'mid') coins = coins.filter(c => (c.market_cap || 0) >= 1e9 && (c.market_cap || 0) <= 10e9);
+    else if (mcapF === 'small') coins = coins.filter(c => (c.market_cap || 0) < 1e9);
+
+    if (signalF !== 'all') {
+      coins = coins.filter(c => {
+        const s = getSignal(c);
+        if (signalF === 'bull') return s.cls === 'bull';
+        if (signalF === 'bear') return s.cls === 'bear';
+        if (signalF === 'athnear') return s.cls === 'athnear';
+        return true;
+      });
+    }
+
+    // Sort
+    if (sortF === 'change_desc') coins.sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
+    else if (sortF === 'change_asc') coins.sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0));
+    else if (sortF === 'mcap_desc') coins.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+    else if (sortF === 'vol_desc') coins.sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
+
+    // Update metrics
+    document.getElementById('m-count').textContent = coins.length;
+    if (coins.length) {
+      const avg = coins.reduce((s, c) => s + (c.price_change_percentage_24h || 0), 0) / coins.length;
+      const mAvg = document.getElementById('m-avg');
+      mAvg.textContent = (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%';
+      mAvg.className = 'metric-value ' + (avg >= 0 ? 'up' : 'down');
+
+      const sorted24 = [...coins].sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
+      const top = sorted24[0], bot = sorted24[sorted24.length - 1];
+      document.getElementById('m-top').textContent = top.symbol.toUpperCase() + ' +' + (top.price_change_percentage_24h || 0).toFixed(1) + '%';
+      document.getElementById('m-bot').textContent = bot.symbol.toUpperCase() + ' ' + (bot.price_change_percentage_24h || 0).toFixed(1) + '%';
+    }
+
+    document.getElementById('status-text').textContent = coins.length + ' coins matched your filters';
+
+    if (!coins.length) {
+      document.getElementById('coin-table').innerHTML = `<tr><td colspan="8"><div class="state-box"><span class="icon">🔍</span><p>No coins match these filters. Try relaxing the criteria.</p></div></td></tr>`;
+      return;
+    }
+
+    const tbody = document.getElementById('coin-table');
+    tbody.innerHTML = coins.map((c, i) => {
+      const chg = c.price_change_percentage_24h || 0;
+      const chg7 = c.price_change_percentage_7d_in_currency || 0;
+      const chgCls = chg > 0 ? 'up' : chg < 0 ? 'down' : 'neutral';
+      const chg7Cls = chg7 > 0 ? 'up' : chg7 < 0 ? 'down' : 'neutral';
+      const signal = getSignal(c);
+      const volRatio = c.market_cap ? Math.min((c.total_volume / c.market_cap) * 100, 100) : 0;
+      const barColor = chg >= 0 ? '#4ADE80' : '#F87171';
+
+      return `<tr>
+        <td><span class="rank-badge">${i + 1}</span></td>
+        <td>
+          <div class="coin-cell">
+            <img class="coin-img" src="${c.image}" alt="${c.name}" width="26" height="26" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div>
+              <div class="coin-name">${c.name}</div>
+              <div class="coin-sym">${c.symbol.toUpperCase()}</div>
+            </div>
+          </div>
+        </td>
+        <td class="mono">${fmtPrice(c.current_price)}</td>
+        <td class="mono ${chgCls}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</td>
+        <td class="mono ${chg7Cls}">${chg7 >= 0 ? '+' : ''}${chg7.toFixed(2)}%</td>
+        <td class="mono">${fmtBig(c.market_cap || 0)}</td>
+        <td>
+          <span class="mono">${fmtBig(c.total_volume || 0)}</span>
+          <span class="vol-bar-bg"><span class="vol-bar-fill" style="width:${volRatio.toFixed(0)}%;background:${barColor}"></span></span>
+        </td>
+        <td><span class="signal-tag ${signal.cls}">${signal.label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function exportCSV() {
+    if (!allData.length) { alert('Please scan the market first.'); return; }
+    let coins = [...allData];
+    const changeF = document.getElementById('f-change').value;
+    const mcapF = document.getElementById('f-mcap').value;
+    if (changeF === 'up5') coins = coins.filter(c => (c.price_change_percentage_24h || 0) >= 5);
+    else if (changeF === 'up10') coins = coins.filter(c => (c.price_change_percentage_24h || 0) >= 10);
+    else if (changeF === 'up20') coins = coins.filter(c => (c.price_change_percentage_24h || 0) >= 20);
+    else if (changeF === 'down5') coins = coins.filter(c => (c.price_change_percentage_24h || 0) <= -5);
+    else if (changeF === 'down10') coins = coins.filter(c => (c.price_change_percentage_24h || 0) <= -10);
+    if (mcapF === 'large') coins = coins.filter(c => (c.market_cap || 0) > 10e9);
+    else if (mcapF === 'mid') coins = coins.filter(c => (c.market_cap || 0) >= 1e9 && (c.market_cap || 0) <= 10e9);
+    else if (mcapF === 'small') coins = coins.filter(c => (c.market_cap || 0) < 1e9);
+
+    let csv = 'Rank,Coin,Symbol,Price (USD),24h Change %,7d Change %,Market Cap (USD),Volume 24h (USD),Signal\n';
+    coins.forEach((c, i) => {
+      const sig = getSignal(c);
+      csv += `${i+1},"${c.name}",${c.symbol.toUpperCase()},${c.current_price},${(c.price_change_percentage_24h||0).toFixed(2)},${(c.price_change_percentage_7d_in_currency||0).toFixed(2)},${c.market_cap||0},${c.total_volume||0},${sig.label}\n`;
+    });
+    csv += `\nExported from AltScreen | ${new Date().toLocaleString()}\n`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'altscreen-export.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Auto-rerender on filter change
+  ['f-change','f-mcap','f-signal','f-sort'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => { if (allData.length) renderTable(); });
+  });
+
+  // Auto-refresh every 2 minutes
+  setInterval(() => { if (allData.length) scanCoins(); }, 120000);
+</script>
+</body>
+</html>
